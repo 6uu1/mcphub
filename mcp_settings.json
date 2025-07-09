@@ -8,7 +8,8 @@
       ],
       "env": {
         "AMAP_MAPS_API_KEY": "${AMAP_MAPS_API_KEY}"
-      }
+      },
+      "enabled": false
     },
     "playwright": {
       "command": "playwright-mcp",
@@ -22,6 +23,13 @@
         "mcp-server-fetch"
       ]
     },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
     "slack": {
       "command": "npx",
       "args": [
@@ -31,7 +39,8 @@
       "env": {
         "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
         "SLACK_TEAM_ID": "${SLACK_TEAM_ID}"
-      }
+      },
+      "enabled": false
     }
   },
   "users": [
