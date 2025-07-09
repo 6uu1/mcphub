@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import { getAppDataSource } from '../db/connection.js';
+import { Setting } from '../db/entities/Setting.js';
 import fs from 'fs';
 import { McpSettings } from '../types/index.js';
 import { getConfigFilePath } from '../utils/path.js';
@@ -57,6 +59,9 @@ export const saveSettings = (settings: McpSettings): boolean => {
     // Update cache after successful save
     settingsCache = settings;
 
+    // 异步保存到数据库（不阻塞主流程）
+    saveSettingsToDatabase(settings).catch(() => {});
+
     return true;
   } catch (error) {
     console.error(`Failed to save settings to ${settingsPath}:`, error);
@@ -101,6 +106,54 @@ export const expandEnvVars = (value: string): string => {
   // Also replace $VAR format (common on Unix-like systems)
   result = result.replace(/\$([A-Z_][A-Z0-9_]*)/g, (_, key) => process.env[key] || '');
   return result;
+};
+
+// ---------------------------------------------
+// 数据库同步逻辑
+// ---------------------------------------------
+
+/**
+ * 将当前 settings 保存到数据库 (settings 表 id=1)
+ */
+const saveSettingsToDatabase = async (settings: McpSettings): Promise<void> => {
+  try {
+    const ds = getAppDataSource();
+    if (!ds.isInitialized) {
+      // 数据库还没准备好，直接返回
+      return;
+    }
+    const repo = ds.getRepository(Setting);
+    await repo.save({ id: 1, data: settings });
+  } catch (err) {
+    console.error('Failed to save settings to database:', err);
+  }
+};
+
+/**
+ * 从数据库恢复 settings.json（Render 容器重启后调用）
+ */
+export const restoreSettingsFromDatabase = async (): Promise<void> => {
+  try {
+    const ds = getAppDataSource();
+    if (!ds.isInitialized) return;
+    const repo = ds.getRepository(Setting);
+    const row = await repo.findOneBy({ id: 1 });
+    if (row && row.data) {
+      settingsCache = row.data as McpSettings;
+      // 同步到文件，方便本地调试及兼容旧逻辑
+      const settingsPath = getSettingsPath();
+      try {
+        fs.writeFileSync(settingsPath, JSON.stringify(row.data, null, 2), 'utf8');
+      } catch (err) {
+        console.warn('Failed to write settings file from database:', err);
+      }
+      console.log('Settings restored from database.');
+    } else {
+      console.log('Settings table empty, will populate on first save.');
+    }
+  } catch (err) {
+    console.error('Failed to restore settings from database:', err);
+  }
 };
 
 export default defaultConfig;

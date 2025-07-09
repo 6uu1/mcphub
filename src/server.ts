@@ -13,6 +13,8 @@ import {
   handleMcpOtherRequest,
 } from './services/sseService.js';
 import { initializeDefaultUser } from './models/User.js';
+import { initializeDatabase } from './db/connection.js';
+import { restoreSettingsFromDatabase } from './config/index.js';
 
 // Get the directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +34,10 @@ export class AppServer {
 
   async initialize(): Promise<void> {
     try {
+      // 先连接数据库并恢复设置，确保后续逻辑读取到缓存
+      await initializeDatabase();
+      await restoreSettingsFromDatabase();
+
       // Initialize default admin user if no users exist
       await initializeDefaultUser();
 
