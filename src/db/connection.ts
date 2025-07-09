@@ -26,7 +26,7 @@ const createRequiredExtensions = async (dataSource: DataSource): Promise<void> =
 
 // Get database URL from smart routing config or fallback to environment variable
 const getDatabaseUrl = (): string => {
-  return getSmartRoutingConfig().dbUrl;
+  return process.env.DATABASE_URL || getSmartRoutingConfig().dbUrl;
 };
 
 // Default database configuration
