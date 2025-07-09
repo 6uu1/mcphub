@@ -166,6 +166,19 @@ SMART_ROUTING_MAX_RESULTS=5
 VECTOR_CACHE_TTL=3600
 ```
 
+### Default Admin Account
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `ADMIN_USERNAME` | `admin` | 默认管理员用户名（仅在首次启动且无用户时创建） |
+| `ADMIN_PASSWORD` | `admin123` | 默认管理员密码，生产环境请务必修改为强密码 |
+
+```env
+# 自定义默认管理员账号
+ADMIN_USERNAME=superadmin
+ADMIN_PASSWORD=supersecret
+```
+
 ## File Storage & Uploads
 
 | Variable             | Default          | Description                         |
