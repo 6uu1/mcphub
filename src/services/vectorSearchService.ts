@@ -196,8 +196,10 @@ export const saveToolsAsVectorEmbeddings = async (
       return;
     }
 
-    const smartRoutingConfig = getSmartRoutingConfig();
-    if (!smartRoutingConfig.enabled) {
+    // Check if smart routing is enabled via environment variables
+    const smartRoutingEnabled = process.env.SMART_ROUTING_ENABLED === 'true' || 
+                               process.env.SMART_ROUTING_ENABLED === '1';
+    if (!smartRoutingEnabled) {
       return;
     }
 
