@@ -23,12 +23,14 @@ const __dirname = path.dirname(__filename);
 export class AppServer {
   private app: express.Application;
   private port: number | string;
+  private host: string;
   private frontendPath: string | null = null;
   private basePath: string;
 
   constructor() {
     this.app = express();
     this.port = config.port;
+    this.host = config.host;
     this.basePath = config.basePath;
   }
 
@@ -102,15 +104,38 @@ export class AppServer {
   }
 
   start(): void {
-    this.app.listen(this.port, () => {
-      console.log(`Server is running on port ${this.port}`);
-      if (this.frontendPath) {
-        console.log(`Open http://localhost:${this.port} in your browser to access MCPHub UI`);
+    const port = typeof this.port === 'string' ? parseInt(this.port) : this.port;
+    const server = this.app.listen(port, this.host, () => {
+      console.log(`Server is running on ${this.host}:${port}`);
+      if (config.isHfSpace) {
+        console.log('Running in Hugging Face Spaces mode');
+        console.log(`Access the application at: https://{your-space-name}.hf.space`);
       } else {
-        console.log(
-          `MCPHub API is running on http://localhost:${this.port}, but the UI is not available`,
-        );
+        console.log(`Local development URL: http://${this.host}:${port}`);
       }
+      
+      if (this.frontendPath) {
+        console.log(`MCPHub UI is available`);
+      } else {
+        console.log(`MCPHub API is running, but the UI is not available`);
+      }
+    });
+
+    // Handle graceful shutdown for Hugging Face Spaces
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received, shutting down gracefully');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
+    });
+
+    process.on('SIGINT', () => {
+      console.log('SIGINT received, shutting down gracefully');
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+      });
     });
   }
 

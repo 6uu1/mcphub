@@ -6,15 +6,25 @@ import { McpSettings } from '../types/index.js';
 import { getConfigFilePath } from '../utils/path.js';
 import { getPackageVersion } from '../utils/version.js';
 
-dotenv.config();
+// Load environment configuration
+// Prioritize .env.hf for Hugging Face Spaces deployment
+if (process.env.HF_SPACE && fs.existsSync('.env.hf')) {
+  console.log('Loading Hugging Face Spaces configuration from .env.hf');
+  dotenv.config({ path: '.env.hf' });
+} else {
+  dotenv.config();
+}
 
 const defaultConfig = {
-  port: process.env.PORT || 7860,
-  initTimeout: process.env.INIT_TIMEOUT || 300000,
-  timeout: process.env.REQUEST_TIMEOUT || 60000,
+  // Use 7860 as default for HF Spaces, fallback to 3000
+  port: process.env.PORT || (process.env.HF_SPACE ? 7860 : 3000),
+  host: process.env.HOST || '0.0.0.0',
+  initTimeout: parseInt(process.env.INIT_TIMEOUT || '300000'),
+  timeout: parseInt(process.env.REQUEST_TIMEOUT || (process.env.HF_SPACE ? '120000' : '60000')),
   basePath: process.env.BASE_PATH || '',
   mcpHubName: 'mcphub',
   mcpHubVersion: getPackageVersion(),
+  isHfSpace: process.env.HF_SPACE === '1',
 };
 
 // Settings cache

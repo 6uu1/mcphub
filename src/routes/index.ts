@@ -37,6 +37,7 @@ import { getAllLogs, clearLogs, streamLogs } from '../controllers/logController.
 import { getRuntimeConfig, getPublicConfig } from '../controllers/configController.js';
 import { callTool } from '../controllers/toolController.js';
 import { uploadDxtFile, uploadMiddleware } from '../controllers/dxtController.js';
+import { healthCheck, liveCheck, readyCheck } from '../controllers/healthController.js';
 import { auth } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -122,6 +123,11 @@ export const initRoutes = (app: express.Application): void => {
 
   // Public configuration endpoint (no auth required to check skipAuth setting)
   app.get(`${config.basePath}/public-config`, getPublicConfig);
+
+  // Health check endpoints (no auth required for monitoring)
+  app.get(`${config.basePath}/api/health`, healthCheck);
+  app.get(`${config.basePath}/api/health/live`, liveCheck);
+  app.get(`${config.basePath}/api/health/ready`, readyCheck);
 
   app.use(`${config.basePath}/api`, router);
 };
