@@ -114,7 +114,7 @@ app_port: 7860
 在 Space 的 Settings 中可以配置以下环境变量：
 
 ```bash
-# 基础认证（可选）
+# 基础认证（可选，默认启用 skipAuth）
 ADMIN_USERNAME=admin                    # 管理员用户名（默认：admin）
 ADMIN_PASSWORD=your-secure-password     # 管理员密码（默认：mcphub123）
 
@@ -122,6 +122,9 @@ ADMIN_PASSWORD=your-secure-password     # 管理员密码（默认：mcphub123�
 BRAVE_API_KEY=your-brave-api-key       # Brave Search API
 OPENAI_API_KEY=your-openai-key         # OpenAI API
 ANTHROPIC_API_KEY=your-anthropic-key   # Anthropic API
+
+# 认证设置（可选）
+SKIP_AUTH=true                         # 跳过认证（默认：true）
 
 # 其他 MCP 服务器相关的环境变量
 GITHUB_TOKEN=your-github-token         # GitHub API 访问
@@ -137,12 +140,18 @@ SLACK_BOT_TOKEN=your-slack-token       # Slack 集成
 
 2. **访问应用**
    - 构建完成后，点击 "App" 标签页
-   - 首次访问时会看到 MCPHub 的管理界面
-   - 默认已启用无认证模式（适合公开演示）
+   - **默认启用无认证模式** - 直接进入管理界面，无需登录
+   - 如果看到登录页面，说明配置有问题（见故障排除）
 
 3. **健康检查**
    ```bash
    curl https://your-space-name.hf.space/api/health
+   ```
+
+4. **验证无认证模式**
+   ```bash
+   curl https://your-space-name.hf.space/api/public-config
+   # 应该返回: {"success": true, "data": {"skipAuth": true}}
    ```
 
 ## 🔧 自定义配置
@@ -263,11 +272,23 @@ curl -X POST https://your-space.hf.space/mcp \
    ```
    **解决**: 确认 Dockerfile 中 EXPOSE 7860 和应用绑定到 0.0.0.0:7860
 
-4. **MCP 服务器启动失败**
+4. **意外显示登录页面**
    ```
-   ❌ Failed to start MCP server: command not found
+   ❌ 显示登录页面，但应该启用无认证模式
    ```
-   **解决**: 检查服务器包名称和参数，确认网络连接正常
+   **解决**: 
+   - 检查 `mcp_settings.json` 中 `"skipAuth": true` 设置
+   - 验证配置: `curl https://your-space.hf.space/api/public-config`
+   - 如果必须登录，默认账号密码：`admin` / `mcphub123`
+
+5. **登录失败**
+   ```
+   ❌ Login failed, please check your username and password
+   ```
+   **解决**: 使用正确的默认凭据
+   - **用户名**: `admin`
+   - **密码**: `mcphub123` (不是 admin123!)
+   - 或检查环境变量 `ADMIN_USERNAME` 和 `ADMIN_PASSWORD`
 
 ### 调试步骤
 
