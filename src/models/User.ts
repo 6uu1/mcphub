@@ -93,7 +93,7 @@ export const initializeDefaultUser = async (): Promise<void> => {
   if (users.length === 0) {
     // 从环境变量读取默认管理员账号密码，若未设置则使用固定默认值
     const defaultUsername = process.env.ADMIN_USERNAME || 'admin';
-    const defaultPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const defaultPassword = process.env.ADMIN_PASSWORD || 'mcphub123';
 
     await createUser({
       username: defaultUsername,
