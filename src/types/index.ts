@@ -82,6 +82,7 @@ export interface McpSettings {
   };
   groups?: IGroup[]; // Array of server groups
   systemConfig?: {
+    skipAuth?: boolean; // Global skip auth setting (takes precedence)
     routing?: {
       enableGlobalRoute?: boolean; // Controls whether the /sse endpoint without group is enabled
       enableGroupNameRoute?: boolean; // Controls whether group routing by name is allowed

@@ -22,7 +22,11 @@ const validateBearerAuth = (req: Request, routingConfig: any): boolean => {
 export const auth = (req: Request, res: Response, next: NextFunction): void => {
   // Check if authentication is disabled globally
   const settings = loadSettings();
-  const skipAuth = settings.systemConfig?.skipAuth || false;
+  
+  // Check global skipAuth first, then fall back to routing.skipAuth for backward compatibility
+  const globalSkipAuth = settings.systemConfig?.skipAuth || false;
+  const routingSkipAuth = settings.systemConfig?.routing?.skipAuth || false;
+  const skipAuth = globalSkipAuth || routingSkipAuth;
   
   if (skipAuth) {
     next();
