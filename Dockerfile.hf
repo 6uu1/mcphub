@@ -73,6 +73,9 @@ RUN pnpm install --frozen-lockfile --prefer-offline || \
 # Copy application files with correct ownership
 COPY --chown=user:user . .
 
+# Copy HF Spaces specific configuration as default
+COPY --chown=user:user mcp_settings.hf.json ./mcp_settings.json
+
 # Download latest servers.json with better error handling and timeout
 RUN curl -s -f --connect-timeout 15 --max-time 30 \
     https://mcpm.sh/api/servers.json -o servers.json || \

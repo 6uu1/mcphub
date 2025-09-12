@@ -36,12 +36,23 @@ export class AppServer {
 
   async initialize(): Promise<void> {
     try {
-      // 先连接数据库并恢复设置，确保后续逻辑读取到缓存
-      await initializeDatabase();
-      await restoreSettingsFromDatabase();
-
-      // Initialize default admin user if no users exist
-      await initializeDefaultUser();
+      // 尝试连接数据库并恢复设置（可选），不阻塞主流程
+      try {
+        if (process.env.DATABASE_URL || process.env.DB_URL) {
+          console.log('Database URL found, attempting to initialize database...');
+          await initializeDatabase();
+          await restoreSettingsFromDatabase();
+          
+          // Initialize default admin user if no users exist
+          await initializeDefaultUser();
+          console.log('Database initialized successfully');
+        } else {
+          console.log('No database URL configured, running in file-only mode');
+        }
+      } catch (dbError) {
+        console.warn('Database initialization failed, continuing without database:', dbError);
+        console.log('Application will run in file-only mode using mcp_settings.json');
+      }
 
       initMiddlewares(this.app);
       initRoutes(this.app);

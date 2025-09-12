@@ -1,0 +1,66 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "env": {},
+      "enabled": true,
+      "keepAliveInterval": 30000,
+      "description": "文件系统访问服务器，限制在 /tmp 目录内"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {},
+      "enabled": true,
+      "keepAliveInterval": 30000,
+      "description": "内存存储服务器，提供临时数据存储"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
+      },
+      "enabled": false,
+      "keepAliveInterval": 30000,
+      "description": "Brave 搜索引擎服务器（需要 API 密钥）"
+    },
+    "fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {},
+      "enabled": true,
+      "keepAliveInterval": 30000,
+      "description": "HTTP 请求服务器，用于获取网页内容"
+    }
+  },
+  "users": [
+    {
+      "id": "admin",
+      "username": "${ADMIN_USERNAME}",
+      "password": "${ADMIN_PASSWORD}",
+      "role": "admin"
+    }
+  ],
+  "systemConfig": {
+    "skipAuth": true,
+    "smartRouting": {
+      "enabled": false,
+      "dbUrl": "",
+      "openaiApiKey": "${OPENAI_API_KEY}",
+      "openaiApiBaseUrl": "https://api.openai.com/v1",
+      "openaiApiEmbeddingModel": "text-embedding-3-small"
+    },
+    "logging": {
+      "level": "info",
+      "enableConsole": true,
+      "enableFile": false
+    },
+    "security": {
+      "corsEnabled": true,
+      "corsOrigins": ["*"],
+      "rateLimitEnabled": false
+    }
+  }
+}

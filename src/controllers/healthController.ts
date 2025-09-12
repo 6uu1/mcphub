@@ -67,7 +67,7 @@ export const healthCheck = async (req: Request, res: Response): Promise<void> =>
     }
 
     // Check database connection (optional)
-    if (process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL || process.env.DB_URL) {
       try {
         const dataSource = getAppDataSource();
         if (dataSource && dataSource.isInitialized) {
@@ -81,6 +81,9 @@ export const healthCheck = async (req: Request, res: Response): Promise<void> =>
         health.checks.database = false;
         health.details!.warnings!.push('Database connection failed');
       }
+    } else {
+      // 如果没有配置数据库URL，则跳过数据库检查
+      console.log('No database URL configured, skipping database health check');
     }
 
     // Determine overall status
