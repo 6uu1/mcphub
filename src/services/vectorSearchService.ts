@@ -2,17 +2,24 @@ import { getRepositoryFactory } from '../db/index.js';
 import { VectorEmbeddingRepository } from '../db/repositories/index.js';
 import { ToolInfo } from '../types/index.js';
 import { getAppDataSource, initializeDatabase } from '../db/connection.js';
-import { getSmartRoutingConfig } from '../utils/smartRouting.js';
 import OpenAI from 'openai';
 
-// Get OpenAI configuration from smartRouting settings or fallback to environment variables
+// Get OpenAI configuration directly from environment variables to avoid circular dependency
 const getOpenAIConfig = () => {
-  const smartRoutingConfig = getSmartRoutingConfig();
   return {
-    apiKey: smartRoutingConfig.openaiApiKey,
-    baseURL: smartRoutingConfig.openaiApiBaseUrl,
-    embeddingModel: smartRoutingConfig.openaiApiEmbeddingModel,
+    apiKey: process.env.OPENAI_API_KEY || '',
+    baseURL: process.env.OPENAI_API_BASE_URL || 'https://api.openai.com/v1',
+    embeddingModel: process.env.OPENAI_API_EMBEDDING_MODEL || 'text-embedding-3-small',
   };
+};
+
+// Initialize the OpenAI client with environment configuration
+const getOpenAIClient = () => {
+  const config = getOpenAIConfig();
+  return new OpenAI({
+    apiKey: config.apiKey, // Get API key from environment variables
+    baseURL: config.baseURL, // Get base URL from environment variables or fallback to default
+  });
 };
 
 // Constants for embedding models
@@ -31,15 +38,6 @@ const getDimensionsForModel = (model: string): number => {
   }
   // Default to OpenAI dimensions
   return EMBEDDING_DIMENSIONS;
-};
-
-// Initialize the OpenAI client with smartRouting configuration
-const getOpenAIClient = () => {
-  const config = getOpenAIConfig();
-  return new OpenAI({
-    apiKey: config.apiKey, // Get API key from smartRouting settings or environment variables
-    baseURL: config.baseURL, // Get base URL from smartRouting settings or fallback to default
-  });
 };
 
 /**
@@ -198,8 +196,10 @@ export const saveToolsAsVectorEmbeddings = async (
       return;
     }
 
-    const smartRoutingConfig = getSmartRoutingConfig();
-    if (!smartRoutingConfig.enabled) {
+    // Check if smart routing is enabled via environment variables
+    const smartRoutingEnabled = process.env.SMART_ROUTING_ENABLED === 'true' || 
+                               process.env.SMART_ROUTING_ENABLED === '1';
+    if (!smartRoutingEnabled) {
       return;
     }
 

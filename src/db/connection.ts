@@ -3,7 +3,6 @@ import { DataSource, DataSourceOptions } from 'typeorm';
 import entities from './entities/index.js';
 import { registerPostgresVectorType } from './types/postgresVectorType.js';
 import { VectorEmbeddingSubscriber } from './subscribers/VectorEmbeddingSubscriber.js';
-import { getSmartRoutingConfig } from '../utils/smartRouting.js';
 
 // Helper function to create required PostgreSQL extensions
 const createRequiredExtensions = async (dataSource: DataSource): Promise<void> => {
@@ -24,9 +23,9 @@ const createRequiredExtensions = async (dataSource: DataSource): Promise<void> =
   }
 };
 
-// Get database URL from smart routing config or fallback to environment variable
+// Get database URL from environment variables only to avoid circular dependency
 const getDatabaseUrl = (): string => {
-  return process.env.DATABASE_URL || getSmartRoutingConfig().dbUrl;
+  return process.env.DATABASE_URL || process.env.DB_URL || '';
 };
 
 // Default database configuration

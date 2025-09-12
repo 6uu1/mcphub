@@ -37,7 +37,11 @@ export const getRuntimeConfig = (req: Request, res: Response): void => {
 export const getPublicConfig = (req: Request, res: Response): void => {
   try {
     const settings = loadSettings();
-    const skipAuth = settings.systemConfig?.routing?.skipAuth || false;
+    
+    // Check global skipAuth first, then fall back to routing.skipAuth for backward compatibility
+    const globalSkipAuth = settings.systemConfig?.skipAuth || false;
+    const routingSkipAuth = settings.systemConfig?.routing?.skipAuth || false;
+    const skipAuth = globalSkipAuth || routingSkipAuth;
 
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');

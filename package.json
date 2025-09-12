@@ -18,8 +18,10 @@
   ],
   "scripts": {
     "build": "pnpm backend:build && pnpm frontend:build",
+    "build:hf": "bash scripts/build-hf.sh",
     "backend:build": "tsc",
     "start": "node dist/index.js",
+    "start:hf": "HF_SPACE=1 node dist/index.js",
     "backend:dev": "tsx watch src/index.ts",
     "backend:debug": "tsx watch src/index.ts --inspect",
     "lint": "eslint . --ext .ts",
@@ -34,7 +36,9 @@
     "frontend:preview": "cd frontend && vite preview",
     "dev": "concurrently \"pnpm backend:dev\" \"pnpm frontend:dev\"",
     "debug": "concurrently \"pnpm backend:debug\" \"pnpm frontend:dev\"",
-    "prepublishOnly": "npm run build && node scripts/verify-dist.js"
+    "prepublishOnly": "npm run build && node scripts/verify-dist.js",
+    "docker:build:hf": "docker build -f Dockerfile.hf -t mcphub:hf .",
+    "docker:run:hf": "docker run -p 7860:7860 mcphub:hf"
   },
   "keywords": [
     "typescript",

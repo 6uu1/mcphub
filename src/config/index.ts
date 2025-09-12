@@ -6,15 +6,25 @@ import { McpSettings } from '../types/index.js';
 import { getConfigFilePath } from '../utils/path.js';
 import { getPackageVersion } from '../utils/version.js';
 
-dotenv.config();
+// Load environment configuration
+// Prioritize .env.hf for Hugging Face Spaces deployment
+if (process.env.HF_SPACE && fs.existsSync('.env.hf')) {
+  console.log('Loading Hugging Face Spaces configuration from .env.hf');
+  dotenv.config({ path: '.env.hf' });
+} else {
+  dotenv.config();
+}
 
 const defaultConfig = {
-  port: process.env.PORT || 3000,
-  initTimeout: process.env.INIT_TIMEOUT || 300000,
-  timeout: process.env.REQUEST_TIMEOUT || 60000,
+  // Use 7860 as default for HF Spaces, fallback to 3000
+  port: process.env.PORT || (process.env.HF_SPACE ? 7860 : 3000),
+  host: process.env.HOST || '0.0.0.0',
+  initTimeout: parseInt(process.env.INIT_TIMEOUT || '300000'),
+  timeout: parseInt(process.env.REQUEST_TIMEOUT || (process.env.HF_SPACE ? '120000' : '60000')),
   basePath: process.env.BASE_PATH || '',
   mcpHubName: 'mcphub',
   mcpHubVersion: getPackageVersion(),
+  isHfSpace: process.env.HF_SPACE === '1',
 };
 
 // Settings cache
@@ -114,6 +124,7 @@ export const expandEnvVars = (value: string): string => {
 
 /**
  * 将当前 settings 保存到数据库 (settings 表 id=1)
+ * 如果数据库不可用，则跳过
  */
 const saveSettingsToDatabase = async (settings: McpSettings): Promise<void> => {
   try {
@@ -125,12 +136,14 @@ const saveSettingsToDatabase = async (settings: McpSettings): Promise<void> => {
     const repo = ds.getRepository(Setting);
     await repo.save({ id: 1, data: settings });
   } catch (err) {
-    console.error('Failed to save settings to database:', err);
+    // 数据库不可用时静默忽略，不影响主流程
+    console.warn('Database not available for settings persistence, using file only');
   }
 };
 
 /**
- * 从数据库恢复 settings.json（Render 容器重启后调用）
+ * 从数据库恢复 settings.json（容器重启后调用）
+ * 如果数据库不可用，则跳过
  */
 export const restoreSettingsFromDatabase = async (): Promise<void> => {
   try {
@@ -152,7 +165,7 @@ export const restoreSettingsFromDatabase = async (): Promise<void> => {
       console.log('Settings table empty, will populate on first save.');
     }
   } catch (err) {
-    console.error('Failed to restore settings from database:', err);
+    console.warn('Database not available for settings restoration, using file only');
   }
 };
 

@@ -1,0 +1,105 @@
+# Multi-stage build for better optimization
+FROM python:3.13-slim-bookworm AS base
+
+# Add metadata and labels for GitHub Container Registry
+LABEL org.opencontainers.image.source="https://github.com/samanhappy/mcphub"
+LABEL org.opencontainers.image.description="MCPHub - The Unified Hub for Model Context Protocol (MCP) Servers (Hugging Face Spaces optimized)"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL maintainer="MCPHub Team"
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Install system dependencies with better cache management
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gnupg \
+    git \
+    ca-certificates \
+  && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get install -y --no-install-recommends nodejs \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install pnpm with specific version for consistency
+RUN npm install -g pnpm@latest
+
+# Hugging Face Spaces specific environment variables
+ARG REQUEST_TIMEOUT=120000
+ENV REQUEST_TIMEOUT=$REQUEST_TIMEOUT
+
+ARG BASE_PATH=""
+ENV BASE_PATH=$BASE_PATH
+
+# Add Hugging Face Spaces specific env vars
+ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=production
+ENV HF_SPACE=1
+
+# Set up pnpm with cache optimization
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+# Install MCP servers globally with error handling
+RUN mkdir -p $PNPM_HOME && \
+  (pnpm add -g @amap/amap-maps-mcp-server || echo "Failed to install amap-mcp") && \
+  (pnpm add -g tavily-mcp@latest || echo "Failed to install tavily-mcp") && \
+  (pnpm add -g @modelcontextprotocol/server-github || echo "Failed to install github-server") && \
+  (pnpm add -g @modelcontextprotocol/server-slack || echo "Failed to install slack-server") && \
+  (pnpm add -g @upstash/context7-mcp@latest || echo "Failed to install context7-mcp")
+
+# Install Python MCP tools
+RUN uv tool install mcp-server-fetch
+
+# Create non-root user for Hugging Face Spaces (required)
+RUN useradd -m -u 1000 user && \
+    mkdir -p /home/user/.cache && \
+    chown -R user:user /home/user
+USER user
+
+# Set working directory to user's home
+WORKDIR /home/user/app
+
+# Update PATH for user with all necessary binaries
+ENV PATH="/home/user/.local/bin:${PATH}"
+ENV PNPM_HOME="/home/user/.local/share/pnpm"
+ENV PATH="${PNPM_HOME}:${PATH}"
+
+# Copy package files with correct ownership and install dependencies
+COPY --chown=user:user package.json pnpm-lock.yaml ./
+
+# Install with cache optimization and error handling  
+RUN pnpm install --frozen-lockfile --prefer-offline || \
+    (echo "Lockfile install failed, trying regular install" && pnpm install)
+
+# Copy application files with correct ownership
+COPY --chown=user:user . .
+
+# Copy HF Spaces specific configuration as default
+COPY --chown=user:user mcp_settings.hf.json ./mcp_settings.json
+
+# Download latest servers.json with better error handling and timeout
+RUN curl -s -f --connect-timeout 15 --max-time 30 \
+    https://mcpm.sh/api/servers.json -o servers.json || \
+    (echo "Failed to download servers.json from mcpm.sh, using bundled version" && \
+     ls -la servers.json)
+
+# Build the application with proper error handling
+RUN pnpm frontend:build && pnpm backend:build
+
+# Copy and setup entrypoint script
+COPY --chown=user:user entrypoint.sh /home/user/entrypoint.sh
+RUN chmod +x /home/user/entrypoint.sh
+
+# Health check for Hugging Face Spaces
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:7860/api/health || exit 1
+
+# Expose port 7860 (required for Hugging Face Spaces)
+EXPOSE 7860
+
+# Set environment variables for Hugging Face Spaces
+ENV PORT=7860
+ENV HOST=0.0.0.0
+
+# Use exec form for better signal handling
+ENTRYPOINT ["python3", "app.py"]
+CMD []

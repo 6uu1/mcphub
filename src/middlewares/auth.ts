@@ -21,18 +21,26 @@ const validateBearerAuth = (req: Request, routingConfig: any): boolean => {
 // Middleware to authenticate JWT token
 export const auth = (req: Request, res: Response, next: NextFunction): void => {
   // Check if authentication is disabled globally
-  const routingConfig = loadSettings().systemConfig?.routing || {
+  const settings = loadSettings();
+  
+  // Check global skipAuth first, then fall back to routing.skipAuth for backward compatibility
+  const globalSkipAuth = settings.systemConfig?.skipAuth || false;
+  const routingSkipAuth = settings.systemConfig?.routing?.skipAuth || false;
+  const skipAuth = globalSkipAuth || routingSkipAuth;
+  
+  if (skipAuth) {
+    next();
+    return;
+  }
+
+  // Check legacy routing config for backward compatibility
+  const routingConfig = settings.systemConfig?.routing || {
     enableGlobalRoute: true,
     enableGroupNameRoute: true,
     enableBearerAuth: false,
     bearerAuthKey: '',
     skipAuth: false,
   };
-
-  if (routingConfig.skipAuth) {
-    next();
-    return;
-  }
 
   // Check if bearer auth is enabled and validate it
   if (validateBearerAuth(req, routingConfig)) {
